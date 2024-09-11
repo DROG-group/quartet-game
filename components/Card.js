@@ -41,7 +41,7 @@ export default function Card({ title, category, attributes, example, isPlayerTur
             </div>
             {!isPlayerTurn && (
                 <div className="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center rounded-md">
-                    <p className="uppercase tracking-widest">{player === 1 ? 'Player 2' : 'Player 1'}'s Turn</p>
+                    <p className="uppercase tracking-widest">{player === 1 ? 'Player 2' : 'Player 1'}&apos;s Turn</p>
                 </div>
             )}
         </div>
