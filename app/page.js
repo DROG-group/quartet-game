@@ -1,112 +1,177 @@
-import Image from "next/image";
+'use client'
+
+import AttributeSelection from "@/components/AttributeSelection";
+import Card from "@/components/Card";
+import PlayerTitle from "@/components/PlayerTitle";
+import Stats from "@/components/Stats";
+import { CARD_ATTRIBUTE_LIST, CARD_CATEGORY_LIST, CARD_LIST, GAME_TITLE } from "@/game.config";
+import { getRandomCard } from "@/utils";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const totalCards = CARD_LIST.length;
+
+  // Toggle between turns
+  const [isPlayer1, setIsPlayer1] = useState(true);
+
+  // Track selected attribute
+  const [selectedAttribute, setSelectedAttribute] = useState(null);
+
+  // Player decks initialized to half the total deck
+  const [player1Deck, setPlayer1Deck] = useState([]);
+  const [player2Deck, setPlayer2Deck] = useState([]);
+
+  const [player1Card, setPlayer1Card] = useState(null);
+  const [player2Card, setPlayer2Card] = useState(null);
+
+  const [player1Stats, setPlayer1Stats] = useState({ cards: 0 });
+  const [player2Stats, setPlayer2Stats] = useState({ cards: 0 });
+
+  // Divide all cards equally between Player 1 and Player 2
+  const divideCards = () => {
+    const shuffledDeck = [...CARD_LIST].sort(() => Math.random() - 0.5);
+    const halfDeckSize = Math.floor(shuffledDeck.length / 2);
+
+    const p1Deck = shuffledDeck.slice(0, halfDeckSize);
+    const p2Deck = shuffledDeck.slice(halfDeckSize);
+
+    setPlayer1Deck(p1Deck);
+    setPlayer2Deck(p2Deck);
+    setPlayer1Stats({ cards: p1Deck.length });
+    setPlayer2Stats({ cards: p2Deck.length });
+  };
+
+  // Function to deal a random card to both players
+  const dealRandomCards = () => {
+    const card1 = getRandomCard(player1Deck);
+    const card2 = getRandomCard(player2Deck);
+
+    setPlayer1Card(card1);
+    setPlayer2Card(card2);
+  };
+
+  // Initialize the game: divide cards and deal
+  useEffect(() => {
+    divideCards();
+  }, []);
+
+  useEffect(() => {
+    dealRandomCards();
+  }, [player1Deck, player2Deck])
+
+  // Function to handle the selected attribute comparison
+  const handleSelectAttribute = (attribute) => {
+    setSelectedAttribute(attribute);
+    compareAttributes(attribute);
+  };
+
+  // Compare the selected attribute between Player 1 and Player 2
+  const compareAttributes = (attribute) => {
+    if (!player1Card || !player2Card || !attribute) {
+      console.error("Cards or attribute are not properly set");
+      return;
+    }
+
+    const player1Attr = player1Card.attributes.find(attr => CARD_ATTRIBUTE_LIST[attr.index] === attribute);
+    const player2Attr = player2Card.attributes.find(attr => CARD_ATTRIBUTE_LIST[attr.index] === attribute);
+
+    if (!player1Attr || !player2Attr) {
+      console.error("Selected attribute not found on cards");
+      return;
+    }
+
+    const player1Value = player1Attr?.score || 0;
+    const player2Value = player2Attr?.score || 0;
+
+    // Determine the winner and transfer the losing card to the opponent's deck
+    if (player1Value > player2Value) {
+      // Player 1 wins this round, transfer Player 2's card to Player 1's deck
+      setPlayer2Stats(prevStats => ({ cards: prevStats.cards - 1 }));
+      setPlayer1Stats(prevStats => ({ cards: prevStats.cards + 1 }));
+      setPlayer1Deck(prevDeck => [...prevDeck, player2Card]); // Add Player 2's card to Player 1's deck
+      setPlayer2Deck(prevDeck => prevDeck.filter(card => card.id !== player2Card.id)); // Remove card from Player 2's deck
+    } else if (player1Value < player2Value) {
+      // Player 2 wins this round, transfer Player 1's card to Player 2's deck
+      setPlayer1Stats(prevStats => ({ cards: prevStats.cards - 1 }));
+      setPlayer2Stats(prevStats => ({ cards: prevStats.cards + 1 }));
+      setPlayer2Deck(prevDeck => [...prevDeck, player1Card]); // Add Player 1's card to Player 2's deck
+      setPlayer1Deck(prevDeck => prevDeck.filter(card => card.id !== player1Card.id)); // Remove card from Player 1's deck
+    }
+
+    // Check for end condition
+    if (player1Stats.cards - 1 <= 0 || player2Stats.cards - 1 <= 0) {
+      declareWinner();
+      return;
+    }
+
+    // Deal new cards for the next round
+    dealRandomCards();
+
+    // Alternate the turn
+    setIsPlayer1(!isPlayer1);
+  };
+
+  // Function to declare the winner when a player's deck is empty
+  const declareWinner = () => {
+    if (player1Stats.cards <= player2Stats.cards) {
+      alert("Player 2 wins!");
+      location.reload();
+    } else if (player2Stats.cards <= player1Stats.cards) {
+      alert("Player 1 wins!");
+      location.reload();
+    } else {
+      alert("It's a draw!");
+      location.reload();
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <main className="flex flex-col w-full items-center justify-center min-h-screen">
+      <h1 className="font-semibold text-4xl text-white">{GAME_TITLE}</h1>
+      <p className="font-bold text-white uppercase">A quartet game by <Link href="https://drog.group" target="_blank" className="link link-hover">DROG</Link></p>
+      <div className="flex flex-col w-full backdrop-blur-md bg-base-100/10 p-7 rounded-xl shadow-lg mt-10 border border-white/30">
+        <div className="flex flex-row justify-between items-center space-x-5">
+          {/* Player 1 Card */}
+          <div className="flex flex-col w-1/3">
+            <PlayerTitle text="Player 1" />
+            {
+              player1Card &&
+              <Card
+                title={player1Card.title}
+                player={1}
+                category={CARD_CATEGORY_LIST[player1Card.categoryIndex]} // Map category index to actual name
+                attributes={player1Card.attributes}
+                example={player1Card.example}
+                isPlayerTurn={isPlayer1} // Pass down the turn status
+              />
+            }
+            <Stats cardNo={player1Stats.cards} />
+          </div>
+
+          {/* Attribute Selection */}
+          <AttributeSelection
+            attributes={CARD_ATTRIBUTE_LIST}
+            onSelect={handleSelectAttribute}
+          />
+
+          {/* Player 2 Card */}
+          <div className="flex flex-col w-1/3">
+            <PlayerTitle text="Player 2" />
+            {
+              player2Card &&
+              <Card
+                title={player2Card.title}
+                player={2}
+                category={CARD_CATEGORY_LIST[player2Card.categoryIndex]} // Map category index to actual name
+                attributes={player2Card.attributes}
+                example={player2Card.example}
+                isPlayerTurn={!isPlayer1} // Pass down the turn status
+              />
+            }
+            <Stats cardNo={player2Stats.cards} />
+          </div>
         </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
       </div>
     </main>
   );

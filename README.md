@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Quartet Card Game
 
-## Getting Started
+A fun and educational card game built using Next.js, TailwindCSS, and DaisyUI, where players compare card attributes to win cards from their opponent. The game ends when one player successfully takes all the cards.
 
-First, run the development server:
+## Game Objective
+
+The objective of the game is to exhaust your opponent's deck by winning rounds based on attribute comparisons.
+
+## How to Play
+
+1. At the start of the game, all cards are divided equally between Player 1 and Player 2.
+2. Each turn, players select an attribute from their card to compare.
+3. The player with the higher attribute value wins the round, and the losing player's card is transferred to the winner's deck.
+4. The game continues until one player has no cards left.
+5. The player with all the cards at the end of the game is the winner.
+
+## Game Features
+
+- **Deck Exhaustion**: Players start with equal decks, and the game continues until one player's deck is completely empty.
+- **Attribute Comparison**: Players compare card attributes such as `Factuality`, `Evidence Strength`, `Emotional Appeal`, and more.
+- **Dynamic Turn-based Gameplay**: Players alternate turns, selecting attributes to compare.
+
+## Tech Stack
+
+- **Frontend**: Built with [Next.js](https://nextjs.org/).
+- **Styling**: Styled using [Tailwind CSS](https://tailwindcss.com/) and [DaisyUI](https://daisyui.com/).
+- **Game Logic**: All game logic is handled client-side using React hooks for state management.
+
+## How to Run
+
+### Prerequisites
+
+- Node.js (version 12.x or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/quartet-card-game.git
+```
+
+2. Navigate to the project directory:
+
+```bash
+cd quartet-card-game
+```
+
+3. Install dependencies:
+
+```bash
+npm install
+```
+
+## Running the Game
+
+To start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Visit `http://localhost:3000` in your browser to play the game.
