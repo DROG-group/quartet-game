@@ -1,177 +1,149 @@
 'use client'
+// pages/index.js
 
-import AttributeSelection from "@/components/AttributeSelection";
-import Card from "@/components/Card";
-import PlayerTitle from "@/components/PlayerTitle";
-import Stats from "@/components/Stats";
-import { CARD_ATTRIBUTE_LIST, CARD_CATEGORY_LIST, CARD_LIST, GAME_TITLE } from "@/game.config";
-import { getRandomCard } from "@/utils";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import PlayerHand from "@/components/PlayerHand";
+import OpponentHand from "@/components/OpponentHand";
+import CategorySelector from "@/components/CategorySelector";
+import TurnIndicator from "@/components/TurnIndicator";
+import GameLog from "@/components/GameLog";
+import QuartetTracker from "@/components/QuartetTracker";
+import ActionButton from "@/components/ActionButton";
+import GameOverModal from "@/components/GameOverModal";
+import { CARD_LIST, CATEGORIES } from "@/game.config";
+import { shuffleCards } from "@/utils";
+import Link from "next/link";
 
 export default function Home() {
-  const totalCards = CARD_LIST.length;
+  // State variables
+  const [playerHand, setPlayerHand] = useState([]);
+  const [opponentHand, setOpponentHand] = useState([]);
+  const [turn, setTurn] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [gameLog, setGameLog] = useState([]);
+  const [quartetTracker, setQuartetTracker] = useState({ player1: 0, player2: 0 });
+  const [completedCategories, setCompletedCategories] = useState([]);
+  const [gameOver, setGameOver] = useState(false);
 
-  // Toggle between turns
-  const [isPlayer1, setIsPlayer1] = useState(true);
-
-  // Track selected attribute
-  const [selectedAttribute, setSelectedAttribute] = useState(null);
-
-  // Player decks initialized to half the total deck
-  const [player1Deck, setPlayer1Deck] = useState([]);
-  const [player2Deck, setPlayer2Deck] = useState([]);
-
-  const [player1Card, setPlayer1Card] = useState(null);
-  const [player2Card, setPlayer2Card] = useState(null);
-
-  const [player1Stats, setPlayer1Stats] = useState({ cards: 0 });
-  const [player2Stats, setPlayer2Stats] = useState({ cards: 0 });
-
-  // Divide all cards equally between Player 1 and Player 2
-  const divideCards = () => {
-    const shuffledDeck = [...CARD_LIST].sort(() => Math.random() - 0.5);
-    const halfDeckSize = Math.floor(shuffledDeck.length / 2);
-
-    const p1Deck = shuffledDeck.slice(0, halfDeckSize);
-    const p2Deck = shuffledDeck.slice(halfDeckSize);
-
-    setPlayer1Deck(p1Deck);
-    setPlayer2Deck(p2Deck);
-    setPlayer1Stats({ cards: p1Deck.length });
-    setPlayer2Stats({ cards: p2Deck.length });
-  };
-
-  // Function to deal a random card to both players
-  const dealRandomCards = () => {
-    const card1 = getRandomCard(player1Deck);
-    const card2 = getRandomCard(player2Deck);
-
-    setPlayer1Card(card1);
-    setPlayer2Card(card2);
-  };
-
-  // Initialize the game: divide cards and deal
   useEffect(() => {
-    divideCards();
+    const shuffledDeck = shuffleCards(CARD_LIST);
+    setPlayerHand(shuffledDeck.slice(0, 4));
+    setOpponentHand(shuffledDeck.slice(4, 8));
+    setGameLog([...gameLog, 'Game loaded and ready to be played.']);
   }, []);
 
-  useEffect(() => {
-    dealRandomCards();
-  }, [player1Deck, player2Deck])
-
-  // Function to handle the selected attribute comparison
-  const handleSelectAttribute = (attribute) => {
-    setSelectedAttribute(attribute);
-    compareAttributes(attribute);
-  };
-
-  // Compare the selected attribute between Player 1 and Player 2
-  const compareAttributes = (attribute) => {
-    if (!player1Card || !player2Card || !attribute) {
-      console.error("Cards or attribute are not properly set");
+  const handleAskForCard = () => {
+    // Check if the selectedCategory is valid
+    if (!selectedCategory) {
+      setGameLog([...gameLog, `Please select a valid category.`]);
       return;
     }
 
-    const player1Attr = player1Card.attributes.find(attr => CARD_ATTRIBUTE_LIST[attr.index] === attribute);
-    const player2Attr = player2Card.attributes.find(attr => CARD_ATTRIBUTE_LIST[attr.index] === attribute);
+    const askingPlayer = turn === 1 ? playerHand : opponentHand;
+    const opponent = turn === 1 ? opponentHand : playerHand;
 
-    if (!player1Attr || !player2Attr) {
-      console.error("Selected attribute not found on cards");
-      return;
-    }
+    // Find the card in the opponent's hand that matches the selected category
+    const cardRequested = opponent.find(card => card.category === selectedCategory);
 
-    const player1Value = player1Attr?.score || 0;
-    const player2Value = player2Attr?.score || 0;
+    if (cardRequested) {
+      setGameLog([...gameLog, `Player ${turn} successfully got a card from category ${selectedCategory}`]);
 
-    // Determine the winner and transfer the losing card to the opponent's deck
-    if (player1Value > player2Value) {
-      // Player 1 wins this round, transfer Player 2's card to Player 1's deck
-      setPlayer2Stats(prevStats => ({ cards: prevStats.cards - 1 }));
-      setPlayer1Stats(prevStats => ({ cards: prevStats.cards + 1 }));
-      setPlayer1Deck(prevDeck => [...prevDeck, player2Card]); // Add Player 2's card to Player 1's deck
-      setPlayer2Deck(prevDeck => prevDeck.filter(card => card.id !== player2Card.id)); // Remove card from Player 2's deck
-    } else if (player1Value < player2Value) {
-      // Player 2 wins this round, transfer Player 1's card to Player 2's deck
-      setPlayer1Stats(prevStats => ({ cards: prevStats.cards - 1 }));
-      setPlayer2Stats(prevStats => ({ cards: prevStats.cards + 1 }));
-      setPlayer2Deck(prevDeck => [...prevDeck, player1Card]); // Add Player 1's card to Player 2's deck
-      setPlayer1Deck(prevDeck => prevDeck.filter(card => card.id !== player1Card.id)); // Remove card from Player 1's deck
-    }
+      const newOpponentHand = opponent.filter(card => card.id !== cardRequested.id);
+      const newAskingPlayerHand = [...askingPlayer, cardRequested];
 
-    // Check for end condition
-    if (player1Stats.cards - 1 <= 0 || player2Stats.cards - 1 <= 0) {
-      declareWinner();
-      return;
-    }
+      // Check if the asking player has completed a quartet after receiving the card
+      const completedQuartet = checkForQuartet(newAskingPlayerHand);
 
-    // Deal new cards for the next round
-    dealRandomCards();
+      if (completedQuartet) {
+        setGameLog([...gameLog, `Player ${turn} has completed the ${completedQuartet} quartet!`]);
 
-    // Alternate the turn
-    setIsPlayer1(!isPlayer1);
-  };
+        const updatedHand = newAskingPlayerHand.filter(card => card.category !== completedQuartet);
 
-  // Function to declare the winner when a player's deck is empty
-  const declareWinner = () => {
-    if (player1Stats.cards <= player2Stats.cards) {
-      alert("Player 2 wins!");
-      location.reload();
-    } else if (player2Stats.cards <= player1Stats.cards) {
-      alert("Player 1 wins!");
-      location.reload();
+        if (turn === 1) {
+          setPlayerHand(updatedHand);
+          setQuartetTracker(prev => ({ ...prev, player1: prev.player1 + 1 }));
+        } else {
+          setOpponentHand(updatedHand);
+          setQuartetTracker(prev => ({ ...prev, player2: prev.player2 + 1 }));
+        }
+
+        setCompletedCategories([...completedCategories, completedQuartet]);
+      } else {
+        // No quartet completed, update hands as usual
+        if (turn === 1) {
+          setPlayerHand(newAskingPlayerHand);
+          setOpponentHand(newOpponentHand);
+        } else {
+          setOpponentHand(newAskingPlayerHand);
+          setPlayerHand(newOpponentHand);
+        }
+      }
+
+      // Check for game over immediately after the card exchange
+      if (newAskingPlayerHand.length === 0 || newOpponentHand.length === 0) {
+        setGameLog([...gameLog, `Game Over!`]);
+        setGameOver(true); // Trigger the game-over state immediately
+        return; // Exit early to avoid continuing the game
+      }
+
     } else {
-      alert("It's a draw!");
-      location.reload();
+      // If the opponent doesn't have the requested card
+      setGameLog([...gameLog, `Player ${turn} asked for a card from ${selectedCategory} but got nothing.`]);
     }
+
+    // Switch turns and reset selected category after each turn
+    setSelectedCategory(null);
+    setTurn(turn === 1 ? 2 : 1);
+  };
+
+  // Check if a player has completed a quartet
+  const checkForQuartet = (hand) => {
+    const categoryCounts = hand.reduce((counts, card) => {
+      counts[card.category] = (counts[card.category] || 0) + 1;
+      return counts;
+    }, {});
+
+    return Object.keys(categoryCounts).find(category => categoryCounts[category] === 4);
   };
 
   return (
-    <main className="flex flex-col w-full items-center justify-center min-h-screen">
-      <h1 className="font-semibold text-4xl text-white">{GAME_TITLE}</h1>
-      <p className="font-bold text-white uppercase">A quartet game by <Link href="https://drog.group" target="_blank" className="link link-hover">DROG</Link></p>
-      <div className="flex flex-col w-full backdrop-blur-md bg-base-100/10 p-7 rounded-xl shadow-lg mt-10 border border-white/30">
-        <div className="flex flex-row justify-between items-center space-x-5">
-          {/* Player 1 Card */}
-          <div className="flex flex-col w-1/3">
-            <PlayerTitle text="Player 1" />
-            {
-              player1Card &&
-              <Card
-                title={player1Card.title}
-                player={1}
-                category={CARD_CATEGORY_LIST[player1Card.categoryIndex]} // Map category index to actual name
-                attributes={player1Card.attributes}
-                example={player1Card.example}
-                isPlayerTurn={isPlayer1} // Pass down the turn status
-              />
-            }
-            <Stats cardNo={player1Stats.cards} />
-          </div>
-
-          {/* Attribute Selection */}
-          <AttributeSelection
-            attributes={CARD_ATTRIBUTE_LIST}
-            onSelect={handleSelectAttribute}
-          />
-
-          {/* Player 2 Card */}
-          <div className="flex flex-col w-1/3">
-            <PlayerTitle text="Player 2" />
-            {
-              player2Card &&
-              <Card
-                title={player2Card.title}
-                player={2}
-                category={CARD_CATEGORY_LIST[player2Card.categoryIndex]} // Map category index to actual name
-                attributes={player2Card.attributes}
-                example={player2Card.example}
-                isPlayerTurn={!isPlayer1} // Pass down the turn status
-              />
-            }
-            <Stats cardNo={player2Stats.cards} />
+    <main className="flex flex-col w-full items-center justify-center min-h-screen py-7">
+      <h1 className="text-3xl font-bold text-center text-base-100">Quartet Game</h1>
+      <p className="font-bold text-base-100 uppercase text-sm">A quartet game by <Link href="https://drog.group" target="_blank" className="link link-hover">DROG</Link></p>
+      <div className="flex flex-col w-full backdrop-blur-md bg-base-100/10 p-7 rounded-xl shadow-lg mt-10 border border-base-100/30">
+        <TurnIndicator turn={turn} />
+        <div className="flex flex-col justify-between space-x-5">
+          <PlayerHand hand={playerHand} />
+          <div className="flex flex-col items-center justify-center my-10 space-y-5">
+            <CategorySelector
+              categories={CATEGORIES}
+              setSelectedCategory={setSelectedCategory}
+              completedCategories={completedCategories}
+              selectedCategory={selectedCategory}
+            />
+            <ActionButton
+              onClick={handleAskForCard}
+              disabled={!selectedCategory || selectedCategory === ""}
+            />
           </div>
         </div>
+        <OpponentHand handLength={opponentHand.length} />
+        <hr className="border-t border-base-100/30 my-10" />
+        <QuartetTracker tracker={quartetTracker} />
+        <hr className="border-t border-base-100/30 my-10" />
+        <GameLog log={gameLog} />
+        {gameOver && (
+          <GameOverModal
+            winner={
+              quartetTracker.player1 === quartetTracker.player2
+                ? "It's a draw! A player runs out ot card and nobody has a quarter."
+                : quartetTracker.player1 > quartetTracker.player2
+                  ? "Player 1"
+                  : "Player 2"
+            }
+          />
+        )}
+
       </div>
     </main>
   );
