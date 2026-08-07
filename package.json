@@ -23,29 +23,29 @@
   },
   "overrides": {
     "@eslint/eslintrc": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
     "@humanwhocodes/config-array": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
     "eslint": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
     "eslint-plugin-import": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
     "eslint-plugin-jsx-a11y": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
     "eslint-plugin-react": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
     "flat-cache": {
-      "flatted": "3.4.2"
+      "flatted": "3.4.4"
     },
     "glob": {
-      "minimatch": "3.1.4"
+      "minimatch": "3.1.5"
     },
-    "js-yaml": "4.3.0"
+    "js-yaml": "4.3.1"
   }
 }
